@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>policy doc puller</title>
+  <style>
+    body { font-family: monospace; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+    fieldset { margin-bottom: 1rem; }
+    label { display: block; margin-bottom: .25rem; }
+    input, select, button { font: inherit; padding: .3rem; width: 100%; box-sizing: border-box; }
+    button { margin-top: .5rem; cursor: pointer; }
+    button[disabled] { cursor: not-allowed; opacity: .5; }
+    .status { padding: .5rem; background: #eee; margin-bottom: 1rem; }
+    .progress { padding: .4rem .5rem; background: #fffbe6; border: 1px solid #e7d27a; margin-bottom: 1rem; font-size: .9em; }
+    .hidden { display: none; }
+    ul { padding-left: 1.2rem; }
+    .field-error { color: #b00; font-size: .85em; display: block; min-height: 1em; }
+    .top-error { color: #fff; background: #b00; padding: .5rem; margin-bottom: 1rem; }
+    .policy-group { margin-bottom: .8rem; }
+    .policy-group h4 { margin: .3rem 0; }
+  </style>
+</head>
+<body>
+  <h1>policy doc puller</h1>
+
+  <div class="status" id="status">idle</div>
+  <div class="progress hidden" id="progress"></div>
+  <div class="top-error hidden" id="topError"></div>
+
+  <fieldset id="loginCard">
+    <legend>step 1 - login</legend>
+    <label>carrier
+      <select id="carrier"></select>
+      <span class="field-error" id="err-carrier"></span>
+    </label>
+    <label>username
+      <input id="username" autocomplete="username">
+      <span class="field-error" id="err-username"></span>
+    </label>
+    <label>password
+      <input id="password" type="password" autocomplete="current-password">
+      <span class="field-error" id="err-password"></span>
+    </label>
+    <small id="carrier-hint" class="hidden" style="display:block;color:#555;margin-bottom:.5rem"></small>
+    <button id="loginBtn" disabled>start</button>
+  </fieldset>
+
+  <fieldset id="mfaCard" class="hidden">
+    <legend>step 2 - mfa</legend>
+    <label>code
+      <input id="mfaCode" inputmode="numeric">
+      <span class="field-error" id="err-code"></span>
+    </label>
+    <button id="mfaBtn" disabled>submit code</button>
+  </fieldset>
+
+  <fieldset id="docsCard" class="hidden">
+    <legend>step 3 - documents</legend>
+    <div id="docList"></div>
+  </fieldset>
+
+  <script src="/app.js"></script>
+</body>
+</html>

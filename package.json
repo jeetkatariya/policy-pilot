@@ -1,0 +1,20 @@
+{
+  "name": "infer-takehome",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch server/index.js",
+    "start": "node server/index.js",
+    "smoke": "node scripts/smoke.js",
+    "inspect:progressive": "node scripts/inspect.js progressive",
+    "inspect:lemonade": "node scripts/inspect.js lemonade"
+  },
+  "dependencies": {
+    "@fastify/static": "^7.0.4",
+    "fastify": "^4.28.1",
+    "playwright": "^1.60.0",
+    "playwright-extra": "^4.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  }
+}
