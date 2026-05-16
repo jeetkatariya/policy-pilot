@@ -76,9 +76,17 @@ By default the username is `infer` and the password is a freshly generated rando
 NGROK_USER=demo NGROK_PASS=mySharedPassword npm run host
 ```
 
+If you have a paid ngrok plan with a reserved static domain, set `NGROK_DOMAIN` and the tunnel will bind to that hostname on every run instead of a random `*.ngrok-free.dev` URL:
+
+```bash
+NGROK_DOMAIN=policy-pilot.ngrok.app \
+NGROK_USER=infer NGROK_PASS=mySharedPassword \
+npm run host
+```
+
 Ctrl-C tears down both the server and the tunnel cleanly.
 
-> **Note for first-time visitors:** on the ngrok free tier, the first request to a tunnel URL shows a one-time abuse-prevention interstitial ("You are about to visit…"). Click *Visit Site* to continue to the basic-auth prompt. Upgrading to a paid ngrok plan removes the interstitial.
+> **Note for first-time visitors on the free tier:** the first request to a `*.ngrok-free.dev` URL shows a one-time abuse-prevention interstitial ("You are about to visit…"). Click *Visit Site* to continue to the basic-auth prompt. A paid ngrok plan with a reserved domain removes the interstitial entirely.
 
 ## Project structure
 

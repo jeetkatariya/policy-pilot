@@ -7,6 +7,7 @@ import { randomBytes } from 'node:crypto';
 const PORT = Number(process.env.PORT) || 3001;
 const NGROK_USER = process.env.NGROK_USER || 'infer';
 const NGROK_PASS = process.env.NGROK_PASS || randomBytes(9).toString('base64url');
+const NGROK_DOMAIN = process.env.NGROK_DOMAIN || null;
 
 let shuttingDown = false;
 const children = [];
@@ -78,12 +79,14 @@ track(server, 'server');
 
 await waitForServerReady();
 
-const ngrok = spawn('ngrok', [
+const ngrokArgs = [
   'http',
   String(PORT),
   '--basic-auth', `${NGROK_USER}:${NGROK_PASS}`,
   '--log', 'stderr',
-]);
+];
+if (NGROK_DOMAIN) ngrokArgs.push('--domain', NGROK_DOMAIN);
+const ngrok = spawn('ngrok', ngrokArgs);
 prefixed(ngrok.stderr, 'ngrok');
 track(ngrok, 'ngrok');
 
