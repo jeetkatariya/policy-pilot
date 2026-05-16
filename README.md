@@ -59,6 +59,25 @@ npm run smoke
 
 Runs an offline end-to-end test against a local fake-portal driver that exercises the full session state machine — login → MFA → multi-policy discovery — without touching any real carrier.
 
+### Sharing the demo via ngrok
+
+The app is intentionally designed to run on a residential IP, not a cloud datacenter — carrier bot-detection systems score datacenter ASNs much harder than a real ISP, so deploying to AWS/GCP would undo most of the anti-detection work. Sharing the running app over [ngrok](https://ngrok.com) keeps the residential IP while exposing a public HTTPS URL.
+
+```bash
+ngrok config add-authtoken <your-token>   # one-time setup
+npm run host
+```
+
+`npm run host` boots the Fastify server, opens an ngrok tunnel in front of it, and prints a banner with the public URL, username, and password. The tunnel is gated with HTTP Basic Auth — anyone who opens the URL sees a browser login pop-up before they can reach the app.
+
+By default the username is `infer` and the password is a freshly generated random string every run. Override either with env vars if you need stable credentials:
+
+```bash
+NGROK_USER=demo NGROK_PASS=mySharedPassword npm run host
+```
+
+Ctrl-C tears down both the server and the tunnel cleanly.
+
 ## Project structure
 
 ```

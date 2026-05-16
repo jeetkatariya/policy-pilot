@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "node --watch server/index.js",
     "start": "node server/index.js",
+    "host": "node scripts/host.js",
     "smoke": "node scripts/smoke.js",
     "inspect:lemonade": "node scripts/inspect.js lemonade",
     "inspect:petsbest": "node scripts/inspect.js petsbest",
