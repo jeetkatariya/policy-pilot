@@ -4,11 +4,11 @@ A web app that retrieves a user's insurance policy documents from personal-lines
 
 The user enters their carrier credentials in the local UI. The backend logs in on their behalf, surfaces an MFA prompt when the carrier challenges, and returns the user's policy documents to the browser when the flow completes.
 
-Currently integrated: **Lemonade**, **Pets Best**, **eRenterPlan**.
+Currently integrated: **Lemonade** (renters / homeowners), **Pets Best** (pet), **eRenterPlan** (renters). Target SLA: **post-auth → documents in under 8 seconds**, surfaced live in the UI via a colour-coded timer pill.
 
 ## How it works
 
-1. **Frontend** — vanilla HTML/JS. A carrier dropdown, credential inputs, an MFA prompt that appears only when the carrier challenges, and a documents list at the end. Polls the backend every 500 ms for status updates and progress.
+1. **Frontend** — vanilla HTML/JS. A carrier dropdown, credential inputs, an MFA prompt that appears only when the carrier challenges, a live SLA timer that starts the moment authorisation completes, and a documents list at the end. Polls the backend every 500 ms for status updates and progress.
 2. **Backend** — Fastify HTTP server. Per session, holds a long-lived Playwright browser context so the login → MFA pause → docs flow runs inside one continuous browser session, never reloading from scratch and never losing cookies in the middle.
 3. **Carrier drivers** — pluggable per-carrier modules under `server/carriers/`. Each implements a `run(session)` function that drives the carrier portal: navigates login, awaits the user's MFA code, finds policies and documents. Drivers can use DOM automation or the carrier's own dashboard APIs when those are reachable from the authenticated browser context.
 4. **Persistent profiles** — each unique `(carrier, username)` pair gets its own Chrome user-data directory. Subsequent runs reuse the existing session, skipping login and MFA entirely when the carrier still trusts the device.
@@ -77,6 +77,8 @@ NGROK_USER=demo NGROK_PASS=mySharedPassword npm run host
 ```
 
 Ctrl-C tears down both the server and the tunnel cleanly.
+
+> **Note for first-time visitors:** on the ngrok free tier, the first request to a tunnel URL shows a one-time abuse-prevention interstitial ("You are about to visit…"). Click *Visit Site* to continue to the basic-auth prompt. Upgrading to a paid ngrok plan removes the interstitial.
 
 ## Project structure
 
