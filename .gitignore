@@ -4,5 +4,6 @@ node_modules/
 storage-state/
 dumps/
 profiles/
+downloads/
 .claude/
 .DS_Store

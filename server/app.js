@@ -2,6 +2,8 @@ import Fastify from 'fastify';
 import fastifyStatic from '@fastify/static';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { stat } from 'node:fs/promises';
+import { createReadStream } from 'node:fs';
 
 import {
   createSession,
@@ -120,6 +122,22 @@ export async function buildApp({ logger = false } = {}) {
     const docId = decodeURIComponent(req.params.docId);
     const doc = (session.documents || []).find((d) => d.id === docId);
     if (!doc) return reply.code(404).send({ error: 'doc not found' });
+
+    // Docs captured via Playwright's download event are saved locally — stream
+    // them from disk. (Used by carriers like eRenterPlan where the carrier UI
+    // triggers a JS-driven download with no static URL.)
+    if (doc.localPath) {
+      const s = await stat(doc.localPath).catch(() => null);
+      if (!s) return reply.code(404).send({ error: 'local file no longer present' });
+      const ext = path.extname(doc.localPath).toLowerCase();
+      const mime = ext === '.pdf' ? 'application/pdf'
+        : ext === '.png' ? 'image/png'
+        : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg'
+        : 'application/octet-stream';
+      reply.header('Content-Type', mime);
+      reply.header('Content-Disposition', `inline; filename="${path.basename(doc.localPath)}"`);
+      return reply.send(createReadStream(doc.localPath));
+    }
 
     if (doc.sourceUrl && session.pwContext) {
       const resp = await session.pwContext.request.get(doc.sourceUrl);
