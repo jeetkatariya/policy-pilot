@@ -1,63 +1,239 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>policy doc puller</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Policy Pilot</title>
   <style>
-    body { font-family: monospace; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
-    fieldset { margin-bottom: 1rem; }
-    label { display: block; margin-bottom: .25rem; }
-    input, select, button { font: inherit; padding: .3rem; width: 100%; box-sizing: border-box; }
-    button { margin-top: .5rem; cursor: pointer; }
-    button[disabled] { cursor: not-allowed; opacity: .5; }
-    .status { padding: .5rem; background: #eee; margin-bottom: 1rem; }
-    .progress { padding: .4rem .5rem; background: #fffbe6; border: 1px solid #e7d27a; margin-bottom: 1rem; font-size: .9em; }
-    .hidden { display: none; }
-    ul { padding-left: 1.2rem; }
-    .field-error { color: #b00; font-size: .85em; display: block; min-height: 1em; }
-    .top-error { color: #fff; background: #b00; padding: .5rem; margin-bottom: 1rem; }
-    .policy-group { margin-bottom: .8rem; }
-    .policy-group h4 { margin: .3rem 0; }
+    :root {
+      --bg: #f7f7f8;
+      --panel: #ffffff;
+      --ink: #1c1c1f;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --accent: #2563eb;
+      --accent-ink: #ffffff;
+      --ok: #15803d;
+      --ok-bg: #ecfdf5;
+      --warn: #b45309;
+      --warn-bg: #fffbeb;
+      --err: #b91c1c;
+      --err-bg: #fef2f2;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      font-size: 15px;
+      line-height: 1.45;
+    }
+    main {
+      max-width: 640px;
+      margin: 2.5rem auto;
+      padding: 0 1rem;
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 0 0 .25rem 0;
+      letter-spacing: -0.01em;
+    }
+    .subtitle {
+      color: var(--muted);
+      margin: 0 0 1.5rem 0;
+      font-size: .9rem;
+    }
+    .status {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .65rem .85rem;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      font-size: .9rem;
+    }
+    .status .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--muted);
+      flex: none;
+    }
+    .status.ok .dot   { background: var(--ok); }
+    .status.warn .dot { background: var(--warn); }
+    .status.err .dot  { background: var(--err); }
+    .status .meta { color: var(--muted); font-size: .8rem; margin-left: auto; }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+    .panel h2 {
+      font-size: .95rem;
+      font-weight: 600;
+      margin: 0 0 1rem 0;
+      letter-spacing: .01em;
+      color: var(--ink);
+    }
+    .panel h2 .hint {
+      font-weight: 400;
+      color: var(--muted);
+      font-size: .85rem;
+      margin-left: .4rem;
+    }
+    .field { margin-bottom: .9rem; }
+    .field label {
+      display: block;
+      font-size: .8rem;
+      font-weight: 500;
+      color: var(--muted);
+      margin-bottom: .3rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    .field input, .field select {
+      width: 100%;
+      padding: .55rem .7rem;
+      font: inherit;
+      color: var(--ink);
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      outline: none;
+    }
+    .field input:focus, .field select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, .15);
+    }
+    .field .error {
+      color: var(--err);
+      font-size: .8rem;
+      margin-top: .25rem;
+      min-height: 1em;
+    }
+    .field .help {
+      color: var(--muted);
+      font-size: .8rem;
+      margin-top: .3rem;
+    }
+    button {
+      width: 100%;
+      padding: .65rem 1rem;
+      font: inherit;
+      font-weight: 500;
+      color: var(--accent-ink);
+      background: var(--accent);
+      border: 0;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: opacity .15s, transform .05s;
+    }
+    button:hover:not([disabled]) { opacity: .9; }
+    button:active:not([disabled]) { transform: translateY(1px); }
+    button[disabled] {
+      background: var(--line);
+      color: var(--muted);
+      cursor: not-allowed;
+    }
+
+    .top-error {
+      padding: .65rem .85rem;
+      background: var(--err-bg);
+      color: var(--err);
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      font-size: .9rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .hidden { display: none !important; }
+
+    .docs-list ul { list-style: none; padding: 0; margin: 0; }
+    .docs-list li {
+      display: flex;
+      align-items: center;
+      padding: .55rem 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .docs-list li:last-child { border-bottom: 0; }
+    .docs-list a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .docs-list a:hover { text-decoration: underline; }
+    .docs-list .doc-policy {
+      color: var(--muted);
+      font-size: .8rem;
+      margin-left: auto;
+    }
+    .policy-group { margin-bottom: 1rem; }
+    .policy-group:last-child { margin-bottom: 0; }
+    .policy-group h3 {
+      font-size: .85rem;
+      font-weight: 600;
+      margin: 0 0 .35rem 0;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
   </style>
 </head>
 <body>
-  <h1>policy doc puller</h1>
+  <main>
+    <h1>Policy Pilot</h1>
+    <p class="subtitle">Retrieve your insurance policy documents from your carrier portal.</p>
 
-  <div class="status" id="status">idle</div>
-  <div class="progress hidden" id="progress"></div>
-  <div class="top-error hidden" id="topError"></div>
+    <div class="status" id="status">
+      <span class="dot"></span>
+      <span class="text">Ready</span>
+      <span class="meta" id="statusMeta"></span>
+    </div>
+    <div class="top-error hidden" id="topError"></div>
 
-  <fieldset id="loginCard">
-    <legend>step 1 - login</legend>
-    <label>carrier
-      <select id="carrier"></select>
-      <span class="field-error" id="err-carrier"></span>
-    </label>
-    <label>username
-      <input id="username" autocomplete="username">
-      <span class="field-error" id="err-username"></span>
-    </label>
-    <label>password
-      <input id="password" type="password" autocomplete="current-password">
-      <span class="field-error" id="err-password"></span>
-    </label>
-    <small id="carrier-hint" class="hidden" style="display:block;color:#555;margin-bottom:.5rem"></small>
-    <button id="loginBtn" disabled>start</button>
-  </fieldset>
+    <section class="panel" id="loginCard">
+      <h2>Login</h2>
+      <div class="field">
+        <label for="carrier">Carrier</label>
+        <select id="carrier"></select>
+        <div class="error" id="err-carrier"></div>
+      </div>
+      <div class="field">
+        <label for="username" id="usernameLabel">Username</label>
+        <input id="username" autocomplete="username">
+        <div class="error" id="err-username"></div>
+        <div class="help hidden" id="usernameHint"></div>
+      </div>
+      <div class="field" id="passwordField">
+        <label for="password">Password</label>
+        <input id="password" type="password" autocomplete="current-password">
+        <div class="error" id="err-password"></div>
+      </div>
+      <button id="loginBtn" disabled>Start</button>
+    </section>
 
-  <fieldset id="mfaCard" class="hidden">
-    <legend>step 2 - mfa</legend>
-    <label>code
-      <input id="mfaCode" inputmode="numeric">
-      <span class="field-error" id="err-code"></span>
-    </label>
-    <button id="mfaBtn" disabled>submit code</button>
-  </fieldset>
+    <section class="panel hidden" id="mfaCard">
+      <h2>Verification <span class="hint">enter the code your carrier sent</span></h2>
+      <div class="field">
+        <label for="mfaCode">Verification code</label>
+        <input id="mfaCode" inputmode="numeric" autocomplete="one-time-code">
+        <div class="error" id="err-code"></div>
+      </div>
+      <button id="mfaBtn" disabled>Submit code</button>
+    </section>
 
-  <fieldset id="docsCard" class="hidden">
-    <legend>step 3 - documents</legend>
-    <div id="docList"></div>
-  </fieldset>
+    <section class="panel hidden docs-list" id="docsCard">
+      <h2>Documents</h2>
+      <div id="docList"></div>
+    </section>
+  </main>
 
   <script src="/app.js"></script>
 </body>

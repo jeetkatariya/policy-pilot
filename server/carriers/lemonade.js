@@ -10,6 +10,7 @@ import {
   makeLog,
   safeClick,
   safeFill,
+  prefetchAndSave,
 } from './_shared.js';
 
 const LOGIN_URL = 'https://www.lemonade.com/login';
@@ -358,6 +359,15 @@ export async function run(session) {
     setProgress(session, { stage: 'done', totalDocs: documents.length });
     setStatus(session, 'done', { documents });
     log('done');
+
+    // All docs were pre-fetched to local files during discoverDocs. Close the
+    // persistent context to release the Chrome profile-singleton lock so the
+    // next session for this user can launch immediately.
+    if (context) {
+      await context.close().catch(() => {});
+      attachBrowser(session, null, null);
+      log('persistent context closed (profile lock released)');
+    }
   } catch (err) {
     log('ERROR ' + err.message);
     const dir = await dumpDebug(page, session, 'error');
@@ -413,7 +423,12 @@ async function discoverDocs(page, session, log) {
 
   // Each active policy becomes one document entry. `form_url` is Lemonade's
   // icebox token URL — the actual policy form PDF the user wants.
-  const docs = policies.map((p) => {
+  // We PRE-FETCH each form_url via the authenticated context so the doc bytes
+  // are stored locally and the persistent context can be closed afterwards
+  // (releasing the profile-singleton lock for the next session).
+  const ctx = page.context();
+  const docs = [];
+  for (const p of policies) {
     const id = p.id || p.public_id || p.policy_id || 'unknown';
     const type = p.humanized_type || p.coverage_type || 'Policy';
     const state = p.state ? ` (${p.state})` : '';
@@ -421,14 +436,23 @@ async function discoverDocs(page, session, log) {
     const name = `${type} Policy ${id}${state}${addr}`;
     const sourceUrl = p.form_url || p.documents_url || p.url || null;
     log(`policy ${id}: type=${type}, state=${p.state || 'n/a'}, status=${p.status || 'n/a'}, form_url=${sourceUrl}`);
-    return {
+
+    let localPath = null;
+    if (sourceUrl) {
+      localPath = await prefetchAndSave(ctx, sourceUrl, session.id, `${id}-${(type || 'policy').toLowerCase()}-policy`);
+      if (localPath) log(`  pre-fetched -> ${localPath}`);
+      else log(`  pre-fetch failed (will fall back to live context.request at click time if available)`);
+    }
+
+    docs.push({
       id: `policy-${id}`,
       name,
       policyId: String(id),
       policyLabel: 'Lemonade',
       sourceUrl,
-    };
-  });
+      localPath,
+    });
+  }
   log(`returning ${docs.length} document(s) from API`);
   return docs;
 }

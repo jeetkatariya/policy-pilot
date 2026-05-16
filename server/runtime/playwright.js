@@ -2,7 +2,27 @@ import { chromium as chromiumExtra } from 'playwright-extra';
 import { chromium as chromiumStock } from 'playwright';
 import stealth from 'puppeteer-extra-plugin-stealth';
 import path from 'node:path';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, readlink, unlink } from 'node:fs/promises';
+
+// If a previous Chrome crashed without releasing its profile-singleton lock,
+// `launchPersistentContext` will refuse to start with "Failed to create a
+// ProcessSingleton". Detect that case (PID in the symlink target is dead)
+// and clear the lock files before launching.
+async function clearStaleProfileLocks(profileDir) {
+  for (const name of ['SingletonLock', 'SingletonCookie', 'SingletonSocket']) {
+    const fp = path.join(profileDir, name);
+    try {
+      const target = await readlink(fp).catch(() => null);
+      if (target == null) continue;          // not a symlink or not present
+      const m = String(target).match(/-(\d+)$/);
+      const pid = m ? Number(m[1]) : NaN;
+      if (Number.isFinite(pid) && pid > 0) {
+        try { process.kill(pid, 0); continue; } catch {/* dead → remove */}
+      }
+      await unlink(fp).catch(() => {});
+    } catch {/* best effort */}
+  }
+}
 
 chromiumExtra.use(stealth());
 
@@ -41,6 +61,7 @@ export const PROFILES_DIR = path.resolve(process.cwd(), 'profiles');
 export async function newPersistentContext(profileKey, options = {}) {
   const profileDir = path.join(PROFILES_DIR, profileKey);
   await mkdir(profileDir, { recursive: true });
+  await clearStaleProfileLocks(profileDir);
   const launchOpts = {
     channel: 'chrome',
     headless: process.env.HEADFUL !== '1',

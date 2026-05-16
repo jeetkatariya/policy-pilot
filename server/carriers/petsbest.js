@@ -10,6 +10,7 @@ import {
   makeLog,
   safeClick,
   safeFill,
+  prefetchAndSave,
 } from './_shared.js';
 
 const LOGIN_URL = 'https://www.petsbest.com/customerportal/Account/login';
@@ -243,6 +244,14 @@ export async function run(session) {
     setProgress(session, { stage: 'done', totalDocs: documents.length });
     setStatus(session, 'done', { documents });
     log('done');
+
+    // Pets Best docs are pre-fetched to disk during discovery — close the
+    // persistent context to release the profile-singleton lock.
+    if (context) {
+      await context.close().catch(() => {});
+      attachBrowser(session, null, null);
+      log('persistent context closed (profile lock released)');
+    }
   } catch (err) {
     log('ERROR ' + err.message);
     const dir = await dumpDebug(page, session, 'error');
@@ -283,17 +292,26 @@ async function discoverDocs(page, session, log) {
     log('NO DOC LINKS ACCEPTED — share ./dumps/' + session.id + '/04-documents-page.html for selector tuning.');
   }
 
+  // Pre-fetch each accepted doc through the authenticated context. The bytes
+  // are saved locally so the persistent context can be closed afterwards,
+  // releasing the Chrome profile-singleton lock for the next session.
+  const ctx = page.context();
   const seen = new Set();
   const docs = [];
   for (const d of accepted) {
     if (seen.has(d.href)) continue;
     seen.add(d.href);
+    const baseName = d.text.replace(/\s+/g, '_').slice(0, 60) || `doc-${docs.length}`;
+    const localPath = await prefetchAndSave(ctx, d.href, session.id, baseName);
+    if (localPath) log(`  pre-fetched "${d.text}" -> ${localPath}`);
+    else log(`  pre-fetch failed for "${d.text}"`);
     docs.push({
       id: `doc-${docs.length}`,
       name: d.text,
       policyId: null,
       policyLabel: 'Pets Best',
       sourceUrl: d.href,
+      localPath,
     });
   }
   return docs;

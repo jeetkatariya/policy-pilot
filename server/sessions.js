@@ -12,6 +12,7 @@ export function createSession({ carrier, username, password }) {
     password,
     status: 'starting',
     mfaRequired: false,
+    mfaWasRequired: false, // sticky: true once MFA was ever asked for in this session
     documents: null,
     error: null,
     progress: null,
@@ -40,8 +41,10 @@ export function snapshotForClient(session) {
     session.mfaSubmittedAt && session.doneAt ? session.doneAt - session.mfaSubmittedAt : null;
   return {
     id: session.id,
+    carrier: session.carrier,
     status: session.status,
     mfaRequired: session.mfaRequired,
+    mfaWasRequired: session.mfaWasRequired || false,
     documents:
       session.documents?.map((d) => ({
         id: d.id,
@@ -67,6 +70,9 @@ export function submitMfa(session, code) {
 export function setStatus(session, status, patch = {}) {
   session.status = status;
   Object.assign(session, patch);
+  if (status === 'awaiting_mfa') {
+    session.mfaWasRequired = true;
+  }
   if (status === 'done' || status === 'failed') {
     session.doneAt = Date.now();
   }

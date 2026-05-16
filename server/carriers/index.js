@@ -18,15 +18,13 @@ export function getCarrier(name) {
   return REGISTRY[name] || null;
 }
 
+// Carriers shown in the UI dropdown. Internal-only entries (stub / stub-pw used
+// by the smoke test, plus carriers we haven't shipped to production) live in
+// REGISTRY but are not surfaced to end users.
 export function listCarriers() {
   return [
-    { id: 'lemonade',    name: 'Lemonade' },
-    { id: 'petsbest',    name: 'Pets Best' },
-    { id: 'erenterplan', name: 'eRenterPlan', experimental: true },
-    { id: 'progressive', name: 'Progressive', experimental: true },
-    { id: 'stub-pw',     name: 'Stub (Playwright via fake portal)' },
-    { id: 'stub',        name: 'Stub (in-memory, no browser)' },
-    { id: 'allstate',    name: 'Allstate', disabled: true },
-    { id: 'geico',       name: 'Geico', disabled: true },
+    { id: 'lemonade',    name: 'Lemonade',    requiresPassword: false },
+    { id: 'petsbest',    name: 'Pets Best',   requiresPassword: true },
+    { id: 'erenterplan', name: 'eRenterPlan', requiresPassword: true },
   ];
 }

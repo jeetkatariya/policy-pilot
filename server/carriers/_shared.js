@@ -2,6 +2,36 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 
+// Fetch a URL through the browser context (so cookies / auth state apply),
+// save the response body to ./downloads/<sessionId>/<filename> with the
+// appropriate extension, and return the local path. Returns null on failure.
+// Used by carriers (Lemonade, Pets Best) to pre-fetch documents during the
+// session so the persistent context can be closed afterwards without losing
+// the ability to serve the documents to the UI.
+export async function prefetchAndSave(context, url, sessionId, baseName) {
+  if (!url) return null;
+  try {
+    const resp = await context.request.get(url);
+    if (!resp.ok()) return null;
+    const body = await resp.body();
+    const ct = (resp.headers()['content-type'] || '').toLowerCase();
+    const ext = ct.includes('pdf') ? '.pdf'
+      : ct.includes('png') ? '.png'
+      : ct.includes('jpeg') ? '.jpg'
+      : ct.includes('html') ? '.html'
+      : '.bin';
+    const safe = String(baseName || 'doc').replace(/[^A-Za-z0-9_.-]/g, '_').slice(0, 80) || 'doc';
+    const filename = safe.toLowerCase().endsWith(ext) ? safe : safe + ext;
+    const dir = path.resolve(process.cwd(), 'downloads', sessionId);
+    await mkdir(dir, { recursive: true });
+    const localPath = path.join(dir, filename);
+    await writeFile(localPath, body);
+    return localPath;
+  } catch {
+    return null;
+  }
+}
+
 // Wait for either a success signal (URL match and/or selector visible) or an
 // error selector to appear. Returns { ok: true } or { ok: false, error }.
 // Pass `action` to perform the click/submit after the watchers are wired up.

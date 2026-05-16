@@ -31,7 +31,16 @@ function validateCreate(body) {
   if (!carrier) errors.push(fieldErr('carrier', 'carrier required'));
   else if (!getCarrier(carrier)) errors.push(fieldErr('carrier', `unknown carrier: ${carrier}`));
   if (!username) errors.push(fieldErr('username', 'username required'));
-  if (!password) errors.push(fieldErr('password', 'password required'));
+  // Password is only required for carriers that authenticate with one.
+  // Carriers like Lemonade use email + OTP only and have requiresPassword=false.
+  if (carrier) {
+    const meta = listCarriers().find((c) => c.id === carrier);
+    if (meta?.requiresPassword !== false && !password) {
+      errors.push(fieldErr('password', 'password required'));
+    }
+  } else if (!password) {
+    errors.push(fieldErr('password', 'password required'));
+  }
   return errors;
 }
 
