@@ -65,6 +65,19 @@
     .status.warn .dot { background: var(--warn); }
     .status.err .dot  { background: var(--err); }
     .status .meta { color: var(--muted); font-size: .8rem; margin-left: auto; }
+    .status .timer {
+      margin-left: .5rem;
+      padding: .15rem .55rem;
+      border-radius: 999px;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      font-variant-numeric: tabular-nums;
+      font-size: .8rem;
+      font-weight: 500;
+    }
+    .status .timer.ok   { color: var(--ok);   background: var(--ok-bg);   border-color: #bbf7d0; }
+    .status .timer.warn { color: var(--warn); background: var(--warn-bg); border-color: #fde68a; }
+    .status .timer.err  { color: var(--err);  background: var(--err-bg);  border-color: #fecaca; }
 
     .panel {
       background: var(--panel);
@@ -195,6 +208,7 @@
       <span class="dot"></span>
       <span class="text">Ready</span>
       <span class="meta" id="statusMeta"></span>
+      <span class="timer hidden" id="timer"></span>
     </div>
     <div class="top-error hidden" id="topError"></div>
 

@@ -69,8 +69,44 @@ function renderStatusFromSnapshot(s) {
 
   const meta = [];
   if (s.status === 'done' && !s.mfaWasRequired) meta.push('trusted session · no MFA needed');
-  if (s.status === 'done' && s.mfaToDoneMs != null) meta.push(`mfa→docs ${s.mfaToDoneMs}ms`);
   setStatus({ tone, text, meta: meta.join(' · ') });
+}
+
+// SLA timer — starts the moment we leave the user-interactive auth step
+// (MFA submit, or login submit on trusted-session runs) and runs until the
+// run completes. Target SLA is <8s, surfaced via the pill color.
+let timerStartedAt = null;
+let timerInterval = null;
+
+function renderTimerValue(ms) {
+  const el = $('timer');
+  el.textContent = `${(ms / 1000).toFixed(1)}s`;
+  el.classList.remove('ok', 'warn', 'err');
+  if (ms < 6000) el.classList.add('ok');
+  else if (ms < 8000) el.classList.add('warn');
+  else el.classList.add('err');
+}
+
+function startTimer() {
+  if (timerStartedAt) return;
+  timerStartedAt = Date.now();
+  $('timer').classList.remove('hidden');
+  renderTimerValue(0);
+  timerInterval = setInterval(() => renderTimerValue(Date.now() - timerStartedAt), 100);
+}
+
+function stopTimer() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  if (timerStartedAt) renderTimerValue(Date.now() - timerStartedAt);
+}
+
+function resetTimer() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  timerStartedAt = null;
+  const el = $('timer');
+  el.classList.add('hidden');
+  el.classList.remove('ok', 'warn', 'err');
+  el.textContent = '';
 }
 
 // ---------- form helpers -------------------------------------------------
@@ -141,6 +177,7 @@ function validateMfaInputs() {
 function resetSessionState() {
   sessionId = null;
   stopPolling();
+  resetTimer();
   $('mfaCard').classList.add('hidden');
   $('docsCard').classList.add('hidden');
   $('docList').innerHTML = '';
@@ -235,12 +272,16 @@ function onSnapshot(s) {
     }
   }
 
+  if (s.status === 'fetching_docs') startTimer();
+
   if (s.status === 'done') {
+    stopTimer();
     stopPolling();
     renderDocs(s.documents);
   }
 
   if (s.status === 'failed') {
+    stopTimer();
     stopPolling();
     showTopError(s.error || 'Failed');
     $('loginBtn').disabled = false;
