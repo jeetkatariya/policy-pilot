@@ -4,6 +4,8 @@ A web app that retrieves a user's insurance policy documents from personal-lines
 
 The user enters their carrier credentials in the local UI. The backend logs in on their behalf, surfaces an MFA prompt when the carrier challenges, and returns the user's policy documents to the browser when the flow completes.
 
+Currently integrated: **Lemonade**, **Pets Best**, **eRenterPlan**.
+
 ## How it works
 
 1. **Frontend** — vanilla HTML/JS. A carrier dropdown, credential inputs, an MFA prompt that appears only when the carrier challenges, and a documents list at the end. Polls the backend every 500 ms for status updates and progress.
@@ -72,10 +74,10 @@ server/
   carriers/
     index.js           carrier registry
     _shared.js         logging, selector helpers, behavioural-mimicry primitives
-    stub.js            in-memory stub (no browser)
-    stub-pw.js         Playwright stub against the local fake portal
-    progressive.js     Progressive driver
+    stub-pw.js         Playwright stub against the local fake portal (smoke only)
     lemonade.js        Lemonade driver
+    petsbest.js        Pets Best driver
+    erenterplan.js     eRenterPlan driver
 scripts/
   smoke.js             offline smoke test harness
   probe-login.js       dumps the DOM structure of a public login URL

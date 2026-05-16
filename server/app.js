@@ -16,7 +16,7 @@ import { userKeyFor } from './carriers/_shared.js';
 import { canStart, recordStart } from './rateLimit.js';
 import fakePortal from './fakePortal.js';
 
-const REAL_CARRIERS = new Set(['progressive', 'lemonade']);
+const REAL_CARRIERS = new Set(['lemonade', 'petsbest', 'erenterplan']);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.resolve(__dirname, '..', 'public');
@@ -31,16 +31,11 @@ function validateCreate(body) {
   if (!carrier) errors.push(fieldErr('carrier', 'carrier required'));
   else if (!getCarrier(carrier)) errors.push(fieldErr('carrier', `unknown carrier: ${carrier}`));
   if (!username) errors.push(fieldErr('username', 'username required'));
-  // Password is only required for carriers that authenticate with one.
-  // Carriers like Lemonade use email + OTP only and have requiresPassword=false.
-  if (carrier) {
-    const meta = listCarriers().find((c) => c.id === carrier);
-    if (meta?.requiresPassword !== false && !password) {
-      errors.push(fieldErr('password', 'password required'));
-    }
-  } else if (!password) {
-    errors.push(fieldErr('password', 'password required'));
-  }
+  // Lemonade-style carriers authenticate with email + OTP only and have
+  // requiresPassword === false; everything else requires a password.
+  const meta = carrier ? listCarriers().find((c) => c.id === carrier) : null;
+  const requiresPassword = meta ? meta.requiresPassword !== false : true;
+  if (requiresPassword && !password) errors.push(fieldErr('password', 'password required'));
   return errors;
 }
 
@@ -132,9 +127,9 @@ export async function buildApp({ logger = false } = {}) {
     const doc = (session.documents || []).find((d) => d.id === docId);
     if (!doc) return reply.code(404).send({ error: 'doc not found' });
 
-    // Docs captured via Playwright's download event are saved locally — stream
-    // them from disk. (Used by carriers like eRenterPlan where the carrier UI
-    // triggers a JS-driven download with no static URL.)
+    // Carriers persist their documents to disk during the run (see
+    // prefetchAndSave / Playwright download events). Stream from disk when a
+    // localPath is set; fall back to context.request for older sessions.
     if (doc.localPath) {
       const s = await stat(doc.localPath).catch(() => null);
       if (!s) return reply.code(404).send({ error: 'local file no longer present' });

@@ -48,12 +48,10 @@ function setStatus({ tone = 'idle', text = 'Ready', meta = '' } = {}) {
 }
 
 function renderStatusFromSnapshot(s) {
-  // Tone
   let tone = 'warn';
   if (s.status === 'done') tone = 'ok';
   if (s.status === 'failed') tone = 'err';
 
-  // Primary text
   const stage = s.progress?.stage;
   let text;
   if (s.status === 'failed') {
@@ -69,15 +67,10 @@ function renderStatusFromSnapshot(s) {
     text = 'Working…';
   }
 
-  // Meta (right side): trusted-session note, or latency, or current stage
-  const parts = [];
-  if (s.status === 'done' && !s.mfaWasRequired) {
-    parts.push('trusted session · no MFA needed');
-  }
-  if (s.status === 'done' && s.mfaToDoneMs != null) {
-    parts.push(`mfa→docs ${s.mfaToDoneMs}ms`);
-  }
-  setStatus({ tone, text, meta: parts.join(' · ') });
+  const meta = [];
+  if (s.status === 'done' && !s.mfaWasRequired) meta.push('trusted session · no MFA needed');
+  if (s.status === 'done' && s.mfaToDoneMs != null) meta.push(`mfa→docs ${s.mfaToDoneMs}ms`);
+  setStatus({ tone, text, meta: meta.join(' · ') });
 }
 
 // ---------- form helpers -------------------------------------------------
@@ -110,12 +103,10 @@ function showTopError(msg) {
 
 function applyCarrierToForm(meta) {
   if (!meta) return;
-  // Password visibility
   const wantsPwd = meta.requiresPassword !== false;
   $('passwordField').classList.toggle('hidden', !wantsPwd);
   if (!wantsPwd) $('password').value = '';
 
-  // Username label + hint per carrier
   const labelEl = $('usernameLabel');
   const hintEl = $('usernameHint');
   if (meta.id === 'lemonade') {
@@ -145,14 +136,14 @@ function validateMfaInputs() {
 
 // ---------- carrier change reset ----------------------------------------
 
+// Credentials for one carrier don't apply to another, so a carrier change
+// clears all form fields, not just session state.
 function resetSessionState() {
   sessionId = null;
   stopPolling();
   $('mfaCard').classList.add('hidden');
   $('docsCard').classList.add('hidden');
   $('docList').innerHTML = '';
-  // Clear ALL form fields when carrier changes — credentials for one carrier
-  // don't apply to another. Only the dropdown selection is preserved.
   $('username').value = '';
   $('password').value = '';
   $('mfaCode').value = '';
@@ -165,8 +156,6 @@ function resetSessionState() {
 
 function onCarrierChanged() {
   const newId = $('carrier').value;
-  // Whenever the dropdown value changes, wipe all form fields + session state.
-  // Same value re-selected = no-op (state persists).
   if (currentCarrier !== null && currentCarrier !== newId) {
     resetSessionState();
     lastSubmittedCarrier = null;
@@ -184,11 +173,7 @@ async function loadCarriers() {
   for (const c of list) {
     const opt = document.createElement('option');
     opt.value = c.id;
-    let label = c.name;
-    if (c.disabled) label += ' (coming soon)';
-    else if (c.experimental) label += ' (experimental)';
-    opt.textContent = label;
-    if (c.disabled) opt.disabled = true;
+    opt.textContent = c.name;
     sel.appendChild(opt);
   }
   applyCarrierToForm(selectedCarrierMeta());
@@ -241,8 +226,8 @@ function stopPolling() {
 function onSnapshot(s) {
   renderStatusFromSnapshot(s);
 
-  // Show Verification section ONLY if MFA was actually required.
-  // (When session reuse / trusted-device skips MFA, never render it.)
+  // Verification section is rendered only if MFA was actually required.
+  // Trusted-device / session-reuse runs that skip MFA never show it.
   if (s.mfaWasRequired) {
     $('mfaCard').classList.remove('hidden');
     if (s.status === 'awaiting_mfa' && $('mfaCode') !== document.activeElement) {
@@ -322,8 +307,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('password').addEventListener('input', validateLoginInputs);
   $('mfaCode').addEventListener('input', validateMfaInputs);
   $('loginBtn').addEventListener('click', () => {
-    // If user clicks Start again after a completed/failed run on the same carrier,
-    // wipe state and start a new session.
     if (sessionId) resetSessionState();
     startLogin();
   });

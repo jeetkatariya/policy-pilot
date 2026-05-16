@@ -7,8 +7,9 @@
     "dev": "node --watch server/index.js",
     "start": "node server/index.js",
     "smoke": "node scripts/smoke.js",
-    "inspect:progressive": "node scripts/inspect.js progressive",
-    "inspect:lemonade": "node scripts/inspect.js lemonade"
+    "inspect:lemonade": "node scripts/inspect.js lemonade",
+    "inspect:petsbest": "node scripts/inspect.js petsbest",
+    "inspect:erenterplan": "node scripts/inspect.js erenterplan"
   },
   "dependencies": {
     "@fastify/static": "^7.0.4",

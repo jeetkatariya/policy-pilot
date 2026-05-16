@@ -2,12 +2,11 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 
-// Fetch a URL through the browser context (so cookies / auth state apply),
-// save the response body to ./downloads/<sessionId>/<filename> with the
-// appropriate extension, and return the local path. Returns null on failure.
-// Used by carriers (Lemonade, Pets Best) to pre-fetch documents during the
-// session so the persistent context can be closed afterwards without losing
-// the ability to serve the documents to the UI.
+// Fetch a URL through the browser context (so its cookies authenticate the
+// request), persist the response to ./downloads/<sessionId>/ with an
+// extension inferred from Content-Type, and return the local path. Returns
+// null on failure. Lets a carrier driver pre-fetch all documents and then
+// close its persistent context without losing the ability to serve docs.
 export async function prefetchAndSave(context, url, sessionId, baseName) {
   if (!url) return null;
   try {
@@ -97,9 +96,7 @@ export async function dismissCookieBanner(page, options = {}) {
         await loc.first().click({ timeout: 1000 }).catch(() => {});
         return text;
       }
-    } catch {
-      // ignore
-    }
+    } catch {}
   }
   return null;
 }
@@ -119,26 +116,24 @@ export function userKeyFor(carrier, username) {
     .slice(0, 16);
 }
 
-// Type one keystroke at a time with random delay so it looks like a human.
+// Anti-detection helpers — sites flag bots that fill instantly and click
+// without moving the mouse. humanType / humanClick / thinkTime introduce
+// per-keystroke delays, hover-before-click, and randomised think-time.
 export async function humanType(locator, text) {
   await locator.click();
   await locator.pressSequentially(text, { delay: 60 + Math.random() * 40 });
 }
 
-// Hover over the target, pause briefly, then click — instead of teleporting.
 export async function humanClick(locator) {
   await locator.hover().catch(() => {});
-  const page = locator.page();
-  await page.waitForTimeout(150 + Math.random() * 250);
+  await locator.page().waitForTimeout(150 + Math.random() * 250);
   await locator.click();
 }
 
-// Random pause between major steps. Bots are too fast; this slows us down to human pace.
 export async function thinkTime(page, minMs = 200, maxMs = 600) {
   await page.waitForTimeout(minMs + Math.random() * (maxMs - minMs));
 }
 
-// A simple stdout logger with prefix — used by drivers so the terminal shows what's happening.
 export function makeLog(prefix) {
   return (msg, meta) => {
     const t = new Date().toISOString().slice(11, 23);
@@ -147,8 +142,8 @@ export function makeLog(prefix) {
   };
 }
 
-// Click with a clear diagnostic: log how many elements matched, whether visible.
-// Fail fast with a descriptive error so the timeout doesn't burn 30s.
+// Click / fill helpers that fail fast with a clear message when a selector
+// misses, instead of waiting out Playwright's default 30s timeout.
 export async function safeClick(log, locator, label) {
   const count = await locator.count().catch(() => 0);
   const url = locator.page().url();
@@ -165,7 +160,6 @@ export async function safeClick(log, locator, label) {
   await humanClick(first);
 }
 
-// Fill with diagnostic; masks the value if it's a password field.
 export async function safeFill(log, locator, value, label, { mask = false } = {}) {
   const count = await locator.count().catch(() => 0);
   log(`fill "${label}" — matched ${count} element(s), value=${mask ? '*'.repeat(value.length) : JSON.stringify(value)}`);
